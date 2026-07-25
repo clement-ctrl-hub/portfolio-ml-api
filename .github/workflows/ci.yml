@@ -31,7 +31,7 @@ jobs:
         run: |
           python -m pytest \
           -v \
-          --m "not integration" \
+          -m "not integration" \
           --cov=app \
           --cov-report=term-missing \
           --cov-fail-under=70
