@@ -124,17 +124,54 @@ jobs:
           echo "Command ID: $COMMAND_ID"
           echo "command_id=$COMMAND_ID" >> "$GITHUB_OUTPUT"
 
-          if ! aws ssm wait command-executed \
-            --command-id "$COMMAND_ID" \
-            --instance-id "$EC2_INSTANCE_ID"; then
+          DEPLOYMENT_STATUS="Pending"
 
-            echo "Le déploiement SSM a échoué."
+          for attempt in $(seq 1 60); do
+            DEPLOYMENT_STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query "Status" \
+              --output text 2>/dev/null || echo "Pending")
+
+            echo "Tentative $attempt/60 - statut SSM : $DEPLOYMENT_STATUS"
+
+            case "$DEPLOYMENT_STATUS" in
+              Success)
+                echo "Déploiement terminé avec succès."
+                break
+                ;;
+
+              Failed|Cancelled|TimedOut|DeliveryTimedOut|ExecutionTimedOut|Undeliverable|Terminated)
+                echo "Le déploiement SSM a échoué : $DEPLOYMENT_STATUS"
+
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$EC2_INSTANCE_ID" \
+                  --query '{
+                    Status:Status,
+                    StatusDetails:StatusDetails,
+                    Output:StandardOutputContent,
+                    Errors:StandardErrorContent
+                  }'
+
+                exit 1
+                ;;
+
+              *)
+                sleep 5
+                ;;
+            esac
+          done
+
+          if [ "$DEPLOYMENT_STATUS" != "Success" ]; then
+            echo "Le déploiement n'est pas terminé après 5 minutes."
 
             aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" \
               --instance-id "$EC2_INSTANCE_ID" \
               --query '{
                 Status:Status,
+                StatusDetails:StatusDetails,
                 Output:StandardOutputContent,
                 Errors:StandardErrorContent
               }'
