@@ -110,10 +110,10 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy portfolio ML API" \
             --parameters commands="[
-              \"echo Début du diagnostic\",
-              \"docker --version\",
-              \"docker ps\",
-              \"echo Fin du diagnostic\" 
+              \"set -e\",
+              \"aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}\",
+              \"docker pull ${IMAGE_URI}\",
+              \"echo Image téléchargée avec succès\" 
             ]" \
             --query "Command.CommandId" \
             --output text)
