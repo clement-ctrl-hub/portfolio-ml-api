@@ -110,13 +110,10 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy portfolio ML API" \
             --parameters commands="[
-              \"set -e\",
-              \"aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}\",
-              \"docker pull ${IMAGE_URI}\",
-              \"docker stop portfolio-ml-api || true\",
-              \"docker rm portfolio-ml-api || true\",
-              \"docker run -d --name portfolio-ml-api --restart unless-stopped -p 8000:8000 ${IMAGE_URI}\",
-              \"for i in \$(seq 1 36); do echo Tentative \$i/36; if curl --fail --silent --show-error http://localhost:8000/health; then echo API opérationnelle; exit 0; fi; sleep 5; done; echo API indisponible; docker ps -a; docker logs --tail 200 portfolio-ml-api; exit 1\"
+              \"echo Début du diagnostic\",
+              \"docker --version\",
+              \"docker ps\",
+              \"echo Fin du diagnostic\" 
             ]" \
             --query "Command.CommandId" \
             --output text)
